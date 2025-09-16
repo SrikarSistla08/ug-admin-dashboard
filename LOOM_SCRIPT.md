@@ -10,7 +10,7 @@
 
 ### **1. Introduction (0:00 - 1:00)**
 **Script:**
-> "Hi! I'm [Your Name], and I'm excited to present the Undergraduation Admin Dashboard I built for your technical assessment. This is a lightweight internal CRM dashboard designed to help your team manage student interactions and track application progress. Let me show you what I've built."
+> "Hi! I'm Srikar Sistla, and I'm excited to present the Undergraduation Admin Dashboard I built for your technical assessment. This is a lightweight internal CRM dashboard designed to help your team manage student interactions and track application progress. Let me show you what I've built."
 
 **Actions:**
 - Show the login page
