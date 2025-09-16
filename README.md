@@ -1,9 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Undergraduation Admin Dashboard
 
-## Getting Started
+A lightweight internal CRM dashboard for managing student interactions on undergraduation.com. Built with Next.js 15, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## 🚀 Features
 
+### Student Directory View
+- **Table view** of all students with search and filtering
+- **Key columns**: Name, Email, Country, Application Status, Last Active
+- **Quick filters**: "Students not contacted in 7 days", "High intent", "Needs essay help"
+- **Click to view** individual student profiles
+
+### Student Individual Profile View
+- **Basic Info**: Name, email, phone, grade, country
+- **Interaction Timeline**: Login activity, AI questions asked, documents submitted
+- **Communication Log**: Emails, SMS with manual logging
+- **Internal Notes**: Add, edit, delete team notes
+- **Progress Tracking**: Visual progress bar based on application stage
+
+### Communication Tools
+- **Manual Communication Logging**: Log calls, emails, SMS
+- **Follow-up Emails**: Mock Customer.io integration with success notifications
+- **Task Management**: Schedule reminders and tasks for internal team
+
+### Insights & Analytics
+- **Summary Statistics**: Active students, status breakdowns
+- **Visual Metrics**: Rich dashboard with gradient cards and progress bars
+- **Application Progress**: Track students through "Exploring" → "Shortlisting" → "Applying" → "Submitted"
+
+### UI/UX Features
+- **Modern Design**: Inspired by my.undergraduation.com with light, friendly theme
+- **Responsive Layout**: Works on desktop and mobile
+- **Smooth Animations**: Click interactions and hover effects
+- **Authentication**: Login page with demo access
+- **Professional Header/Footer**: Branded navigation
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
+- **UI Components**: Custom component library (Button, Card, Badge, Input, Select, Progress, Tabs, Toast, Avatar)
+- **Database**: In-memory mock database (ready for Firebase Firestore)
+- **Authentication**: Mock auth system (ready for Firebase Auth)
+- **Email Integration**: Mock Customer.io API
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
+- **Form Management**: React Hook Form
+- **Validation**: Zod
+
+## 📋 Prerequisites
+
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+- Git
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+```bash
+git clone <your-repo-url>
+cd ug-admin-dashboard
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+### 3. Run Development Server
 ```bash
 npm run dev
 # or
@@ -14,23 +82,187 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Open in Browser
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎯 Usage Guide
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Getting Started
+1. **Login**: Click "Continue to Dashboard" on the login page
+2. **Student Directory**: View all students with search and filters
+3. **Student Profile**: Click "View →" to see individual student details
+4. **Insights**: Navigate to Insights page for analytics
 
-## Learn More
+### Key Features
 
-To learn more about Next.js, take a look at the following resources:
+#### Student Directory
+- **Search**: Type in the search box to filter by name, email, or country
+- **Status Filter**: Use dropdown to filter by application status
+- **Quick Filters**: Click buttons for common filters (Not contacted 7+ days, High intent, Needs essay help)
+- **View Profile**: Click "View →" to open individual student profile
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Student Profile
+- **Basic Info**: View student contact details and current status
+- **Progress Bar**: Visual representation of application stage
+- **Update Status**: Change student's application stage
+- **Timeline Tab**: See interaction history (logins, AI questions, document uploads)
+- **Communications Tab**: Log and view all communications
+- **Notes Tab**: Add, edit, delete internal team notes
+- **Tasks Tab**: Create and manage tasks for the student
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### Communication Tools
+- **Log Communication**: Add new emails, calls, or SMS
+- **Send Follow-up**: Mock Customer.io integration with success toast
+- **Add Tasks**: Create reminders and tasks with due dates
 
-## Deploy on Vercel
+#### Insights Dashboard
+- **Key Metrics**: View total students, not contacted, high intent, needs essay help
+- **Status Distribution**: Visual breakdown of application stages
+- **Application Progress**: Progress bars for each status
+- **Detailed Table**: Comprehensive view of all students
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🏗️ Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+ug-admin-dashboard/
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── api/               # API routes
+│   │   │   └── followup/      # Mock Customer.io endpoint
+│   │   ├── insights/          # Analytics page
+│   │   ├── login/             # Authentication page
+│   │   ├── students/          # Student directory and profiles
+│   │   │   └── [id]/          # Individual student pages
+│   │   ├── globals.css        # Global styles
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Home page (redirects to login)
+│   ├── components/            # Reusable components
+│   │   ├── ui/               # UI component library
+│   │   │   ├── Avatar.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   ├── Button.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Progress.tsx
+│   │   │   ├── Select.tsx
+│   │   │   ├── Tabs.tsx
+│   │   │   └── Toast.tsx
+│   │   ├── AuthControls.tsx   # Authentication controls
+│   │   ├── AuthGate.tsx       # Route protection
+│   │   ├── Footer.tsx         # Site footer
+│   │   └── Header.tsx         # Site header
+│   ├── data/
+│   │   └── mockDb.ts          # In-memory database
+│   └── domain/
+│       └── types.ts           # TypeScript type definitions
+├── public/
+│   └── download.png           # Undergraduation logo
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── README.md
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+Currently uses mock data. For production, you would add:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+
+# Customer.io Configuration
+CUSTOMER_IO_API_KEY=your_api_key
+CUSTOMER_IO_SITE_ID=your_site_id
+```
+
+### Mock Data
+The application includes seeded data with 10 sample students across different application stages. Data is stored in memory and resets on server restart.
+
+## 🎨 Customization
+
+### UI Components
+All UI components are in `src/components/ui/` and can be customized:
+- **Colors**: Modify Tailwind classes in component files
+- **Spacing**: Adjust padding, margins, and gaps
+- **Animations**: Customize transition durations and effects
+
+### Data Model
+Types are defined in `src/domain/types.ts`:
+- `Student`: Core student information
+- `Interaction`: Login, AI questions, document uploads
+- `Communication`: Emails, SMS, calls
+- `Note`: Internal team notes
+- `Task`: Reminders and tasks
+
+### Mock Database
+Database operations are in `src/data/mockDb.ts`:
+- CRUD operations for all entities
+- Seeded sample data
+- Ready to replace with Firebase Firestore
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. Push code to GitHub
+2. Connect repository to Vercel
+3. Deploy automatically
+
+### Other Platforms
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- AWS Amplify
+- DigitalOcean App Platform
+
+## 🧪 Development
+
+### Available Scripts
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+```
+
+### Adding New Features
+1. **New Pages**: Add to `src/app/`
+2. **New Components**: Add to `src/components/`
+3. **New Types**: Add to `src/domain/types.ts`
+4. **New API Routes**: Add to `src/app/api/`
+
+## 🔮 Future Enhancements
+
+### Production Ready
+- [ ] Replace mock database with Firebase Firestore
+- [ ] Implement Firebase Authentication
+- [ ] Add real Customer.io integration
+- [ ] Add data validation with Zod
+- [ ] Implement error boundaries
+- [ ] Add loading states and skeletons
+
+### Additional Features
+- [ ] Bulk operations (export, mass updates)
+- [ ] Advanced filtering and sorting
+- [ ] Email templates and automation
+- [ ] Real-time notifications
+- [ ] Data export (CSV, PDF)
+- [ ] Mobile app (React Native)
+
+## 📞 Support
+
+For questions or issues:
+1. Check the code comments for implementation details
+2. Review the type definitions in `src/domain/types.ts`
+3. Examine the mock database in `src/data/mockDb.ts`
+
+## 📄 License
+
+This project is built for Undergraduation.com as part of a technical assessment.
+
+---
+
+**Built with ❤️ for student success**
