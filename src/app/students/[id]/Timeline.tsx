@@ -31,11 +31,11 @@ export default function Timeline({ studentId }: { studentId: string }) {
             </div>
             <div className="flex-1 transition-all duration-200 group-hover:bg-slate-50 group-hover:px-2 group-hover:py-1 group-hover:rounded-md">
               <div className="text-sm font-medium capitalize">{i.type.replace("_", " ")}</div>
-              {i.metadata?.q && (
-                <div className="text-xs text-slate-600 mt-1">{String(i.metadata.q)}</div>
+              {i.metadata && 'q' in i.metadata && typeof i.metadata.q === 'string' && (
+                <div className="text-xs text-slate-600 mt-1">{i.metadata.q}</div>
               )}
-              {i.metadata?.name && (
-                <div className="text-xs text-slate-600 mt-1">{String(i.metadata.name)}</div>
+              {i.metadata && 'name' in i.metadata && typeof i.metadata.name === 'string' && (
+                <div className="text-xs text-slate-600 mt-1">{i.metadata.name}</div>
               )}
               <div className="text-xs text-slate-500 mt-1">{format(i.createdAt, "yyyy-MM-dd HH:mm")}</div>
             </div>

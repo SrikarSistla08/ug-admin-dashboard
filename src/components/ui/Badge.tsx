@@ -1,14 +1,15 @@
 export function Badge({ children, className = "", variant = "default" }: { 
   children: React.ReactNode; 
   className?: string;
-  variant?: "default" | "exploring" | "shortlisting" | "applying" | "submitted";
+  variant?: "default" | "exploring" | "shortlisting" | "applying" | "submitted" | "custom";
 }) {
   const variants = {
     default: "bg-slate-100 text-slate-800 border-slate-200",
     exploring: "bg-blue-100 text-blue-800 border-blue-200",
     shortlisting: "bg-yellow-100 text-yellow-800 border-yellow-200", 
     applying: "bg-orange-100 text-orange-800 border-orange-200",
-    submitted: "bg-green-100 text-green-800 border-green-200"
+    submitted: "bg-green-100 text-green-800 border-green-200",
+    custom: "" // Custom styling will be provided via className
   };
   
   return (

@@ -112,9 +112,9 @@ export default function InsightsPage() {
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-500 ${
-                        status === 'exploring' ? 'bg-blue-500' :
-                        status === 'shortlisting' ? 'bg-yellow-500' :
-                        status === 'applying' ? 'bg-orange-500' : 'bg-green-500'
+                        status === 'Exploring' ? 'bg-blue-500' :
+                        status === 'Shortlisting' ? 'bg-yellow-500' :
+                        status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'
                       }`}
                       style={{ width: `${percentage}%` }}
                     ></div>
@@ -136,9 +136,9 @@ export default function InsightsPage() {
               return (
                 <div key={status} className="flex items-center gap-3">
                   <div className={`w-4 h-4 rounded-full ${
-                    status === 'exploring' ? 'bg-blue-500' :
-                    status === 'shortlisting' ? 'bg-yellow-500' :
-                    status === 'applying' ? 'bg-orange-500' : 'bg-green-500'
+                    status === 'Exploring' ? 'bg-blue-500' :
+                    status === 'Shortlisting' ? 'bg-yellow-500' :       
+                    status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'
                   }`}></div>
                   <div className="flex-1">
                     <div className="flex justify-between text-sm">
@@ -147,10 +147,10 @@ export default function InsightsPage() {
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
                       <div 
-                        className={`h-1.5 rounded-full transition-all duration-500 ${
-                          status === 'exploring' ? 'bg-blue-500' :
-                          status === 'shortlisting' ? 'bg-yellow-500' :
-                          status === 'applying' ? 'bg-orange-500' : 'bg-green-500'
+                        className={`h-1.5 rounded-full transition-all duration-500 ${                                                                   
+                          status === 'Exploring' ? 'bg-blue-500' :      
+                          status === 'Shortlisting' ? 'bg-yellow-500' : 
+                          status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'                                                                      
                         }`}
                         style={{ width: `${percentage}%` }}
                       ></div>
@@ -199,10 +199,10 @@ export default function InsightsPage() {
                   <td className="px-6 py-3">
                     <div className="w-20 bg-slate-200 rounded-full h-2">
                       <div 
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          status === 'exploring' ? 'bg-blue-500' :
-                          status === 'shortlisting' ? 'bg-yellow-500' :
-                          status === 'applying' ? 'bg-orange-500' : 'bg-green-500'
+                        className={`h-2 rounded-full transition-all duration-500 ${                                                                     
+                          status === 'Exploring' ? 'bg-blue-500' :      
+                          status === 'Shortlisting' ? 'bg-yellow-500' : 
+                          status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'                                                                      
                         }`}
                         style={{ width: `${percentage}%` }}
                       ></div>

@@ -48,7 +48,7 @@ export const InteractionSchema = z.object({
   id: z.string(),
   studentId: z.string(),
   type: z.enum(interactionTypes),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   createdAt: z.date(),
 });
 

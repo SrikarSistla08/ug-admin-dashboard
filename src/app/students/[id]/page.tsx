@@ -2,7 +2,7 @@
 import { mockDb } from "@/data/mockDb";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { use as usePromise, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Communication, Note, Task, applicationStatuses, ApplicationStatus } from "@/domain/types";
 import { Button } from "@/components/ui/Button";
@@ -19,11 +19,9 @@ import AISummary from "./AISummary";
 
 export default function StudentProfile({ params }: { params: Promise<{ id: string }> }) {
   const [tab, setTab] = useState<string>("timeline");
-  const routeParams = usePromise(params);
+  const [studentId, setStudentId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const { push } = useToast();
-  
-  // Get student data - this will be null if not found
-  const student = mockDb.getStudent(routeParams.id);
   
   // Initialize all state hooks with default values first
   const [status, setStatus] = useState<ApplicationStatus>("Exploring");
@@ -31,12 +29,16 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
   const [tasks, setTasks] = useState<Task[]>([]);
   const [comms, setComms] = useState<Communication[]>([]);
   
-  // Early return for not found - this happens after all hooks are called
-  if (!student) { 
-    notFound(); 
-  }
+  // Resolve params
+  useEffect(() => {
+    params.then((resolvedParams) => {
+      setStudentId(resolvedParams.id);
+      setIsLoading(false);
+    });
+  }, [params]);
   
-  const current = student; // narrow for TS below
+  // Get student data once we have the ID
+  const student = studentId ? mockDb.getStudent(studentId) : null;
   
   // Load data when student is available
   useEffect(() => {
@@ -47,6 +49,24 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
       setComms(mockDb.listCommunications(student.id));
     }
   }, [student]);
+  
+  // Show loading state while resolving params
+  if (isLoading) {
+    return (
+      <div className="px-6 py-8 max-w-5xl mx-auto">
+        <div className="text-center py-8">
+          <div className="text-slate-600">Loading student profile...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Handle not found case - this must happen after all hooks
+  if (!student) { 
+    notFound(); 
+  }
+  
+  const current = student; // narrow for TS below
 
   function generateId(prefix: string) {
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;

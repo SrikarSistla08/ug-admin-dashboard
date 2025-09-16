@@ -55,7 +55,7 @@ export default function LoginPage() {
 
           {/* Features Preview */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-slate-900 mb-3">What you'll find:</h3>
+            <h3 className="text-sm font-medium text-slate-900 mb-3">What you&apos;ll find:</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <span className="text-green-600">✓</span>

@@ -34,7 +34,7 @@ export default function RootLayout({
         <ToastProvider>
           <Header />
           <AuthGate>
-            <main className="min-h[calc(100vh-140px)]">
+            <main className="min-h-[calc(100vh-140px)]">
               {children}
             </main>
           </AuthGate>
