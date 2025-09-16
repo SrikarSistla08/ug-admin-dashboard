@@ -33,7 +33,6 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     params.then((resolvedParams) => {
       setStudentId(resolvedParams.id);
-      setIsLoading(false);
     });
   }, [params]);
   
@@ -57,6 +56,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
     if (!studentId) return;
     let isCancelled = false;
     (async () => {
+      setIsLoading(true);
       const s = await firebaseDb.getStudent(studentId);
       if (isCancelled) return;
       setStudent(s);
@@ -74,6 +74,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
         setComms(commsList);
         setInteractions(interList as any);
       }
+      setIsLoading(false);
     })();
     return () => {
       isCancelled = true;

@@ -16,12 +16,16 @@ export default function StudentsPage() {
   const [status, setStatus] = useState<string>("");
   const [quick, setQuick] = useState<string>("");
   const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isCancelled = false;
     (async () => {
       const list = await firebaseDb.listStudentsFull();
-      if (!isCancelled) setAllStudents(list);
+      if (!isCancelled) {
+        setAllStudents(list);
+        setLoading(false);
+      }
     })();
     return () => {
       isCancelled = true;
@@ -52,7 +56,7 @@ export default function StudentsPage() {
     }
 
     return filtered;
-  }, [query, status, quick]);
+  }, [query, status, quick, allStudents]);
 
   const stats = useMemo(() => {
     const all: Student[] = allStudents;
@@ -71,6 +75,16 @@ export default function StudentsPage() {
     const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("needs_essay_help")).length;
     return { total, statusCounts, notContacted7d, highIntent, needsEssayHelp };
   }, [allStudents]);
+
+  if (loading) {
+    return (
+      <div className="px-6 py-8 max-w-6xl mx-auto w-full">
+        <div className="text-sm text-slate-500">Directory</div>
+        <h1 className="text-2xl font-semibold">Students</h1>
+        <div className="mt-8 text-slate-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto w-full">

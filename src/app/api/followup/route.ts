@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
       recipient = student.email;
     }
 
-    // Ensure customer is present and send via Customer.io
+    // Try Customer.io (soft-fail in dev)
+    let ciStatus: 'sent' | 'skipped' = 'sent';
     try {
       await customerIOService.upsertCustomer(studentId, { email: recipient });
       await customerIOService.sendEmail(studentId, {
@@ -35,9 +36,8 @@ export async function POST(req: NextRequest) {
         subject: subject || "Follow-up",
         body: message,
       });
-    } catch (err) {
-      // Continue but report failure
-      return NextResponse.json({ error: "Failed to send email via Customer.io" }, { status: 502 });
+    } catch {
+      ciStatus = 'skipped';
     }
 
     // Persist communication record in Firestore
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     };
     await firebaseDb.addCommunication(record);
 
-    return NextResponse.json({ ok: true, id: record.id });
+    return NextResponse.json({ ok: true, id: record.id, customerio: ciStatus });
   } catch (e) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

@@ -10,7 +10,9 @@ import {
   query, 
   where, 
   orderBy,
-  Timestamp 
+  limit,
+  Timestamp,
+  increment 
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Student, Interaction, Communication, Note, Task, DirectoryStudent } from '@/domain/types';
@@ -149,6 +151,13 @@ export class FirebaseDb {
       createdAt: toTimestamp(communication.createdAt),
     };
     await addDoc(communicationsRef, communicationData);
+    // Update per-student counters and last communication metadata
+    const studentRef = doc(db, 'students', communication.studentId);
+    await updateDoc(studentRef, {
+      communicationsCount: increment(1),
+      lastCommunicationAt: toTimestamp(communication.createdAt),
+      lastCommunicationChannel: communication.channel,
+    });
   }
 
   async listCommunications(studentId: string): Promise<Communication[]> {
@@ -176,6 +185,37 @@ export class FirebaseDb {
   async deleteCommunication(studentId: string, id: string): Promise<void> {
     const communicationRef = doc(db, 'communications', id);
     await deleteDoc(communicationRef);
+    // Decrement counter and recompute lastCommunicationAt
+    const studentRef = doc(db, 'students', studentId);
+    try {
+      await updateDoc(studentRef, { communicationsCount: increment(-1) });
+    } catch {
+      // ignore if field missing
+    }
+    // Recompute latest communication timestamp/channel
+    const communicationsRef = collection(db, 'communications');
+    const q = query(
+      communicationsRef,
+      where('studentId', '==', studentId),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.docs.length > 0) {
+      const data = snapshot.docs[0].data() as {
+        createdAt: Timestamp | { toDate: () => Date } | Date;
+        channel: string;
+      };
+      await updateDoc(studentRef, {
+        lastCommunicationAt: data.createdAt,
+        lastCommunicationChannel: data.channel,
+      });
+    } else {
+      await updateDoc(studentRef, {
+        lastCommunicationAt: null as unknown as Timestamp,
+        lastCommunicationChannel: null as unknown as string,
+      });
+    }
   }
 
   // Notes
