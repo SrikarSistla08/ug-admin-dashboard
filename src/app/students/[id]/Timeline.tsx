@@ -1,5 +1,4 @@
 "use client";
-import { mockDb } from "@/data/mockDb";
 import { Interaction } from "@/domain/types";
 import { format } from "date-fns";
 
@@ -9,9 +8,8 @@ function iconFor(type: Interaction["type"]) {
   return <span className="text-sm">📄</span>;
 }
 
-export default function Timeline({ studentId }: { studentId: string }) {
-  const items = mockDb
-    .listInteractions(studentId)
+export default function Timeline({ interactions }: { interactions: Interaction[] }) {
+  const items = interactions
     .slice()
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 

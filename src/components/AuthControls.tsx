@@ -2,22 +2,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authService } from "@/lib/auth";
 
 export default function AuthControls() {
   const router = useRouter();
   const [isAuthed, setIsAuthed] = useState(false);
 
   useEffect(() => {
-    // Only run on client side
     if (typeof window === 'undefined') return;
-    
-    setIsAuthed(!!localStorage.getItem("ug_admin_token"));
+    return authService.onAuthStateChanged((user) => setIsAuthed(!!user));
   }, []);
 
-  const handleSignOut = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("ug_admin_token");
-    }
+  const handleSignOut = async () => {
+    await authService.signOut();
     setIsAuthed(false);
     router.replace("/login");
   };

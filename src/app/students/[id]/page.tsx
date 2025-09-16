@@ -1,5 +1,5 @@
 "use client";
-import { mockDb } from "@/data/mockDb";
+import { firebaseDb } from "@/lib/firebaseDb";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -37,18 +37,48 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
     });
   }, [params]);
   
-  // Get student data once we have the ID
-  const student = studentId ? mockDb.getStudent(studentId) : null;
+  // Student and related data
+  const [student, setStudent] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    grade?: string;
+    country: string;
+    status: ApplicationStatus;
+    lastActiveAt: Date;
+    createdAt: Date;
+    flags?: string[];
+  } | null>(null);
+  const [interactions, setInteractions] = useState<Array<{ id: string; studentId: string; type: string; metadata?: Record<string, unknown>; createdAt: Date }>>([]);
   
-  // Load data when student is available
+  // Load data once we have studentId
   useEffect(() => {
-    if (student) {
-      setStatus(student.status);
-      setNotes(mockDb.listNotes(student.id));
-      setTasks(mockDb.listTasks(student.id));
-      setComms(mockDb.listCommunications(student.id));
-    }
-  }, [student]);
+    if (!studentId) return;
+    let isCancelled = false;
+    (async () => {
+      const s = await firebaseDb.getStudent(studentId);
+      if (isCancelled) return;
+      setStudent(s);
+      if (s) {
+        setStatus(s.status);
+        const [notesList, tasksList, commsList, interList] = await Promise.all([
+          firebaseDb.listNotes(s.id),
+          firebaseDb.listTasks(s.id),
+          firebaseDb.listCommunications(s.id),
+          firebaseDb.listInteractions(s.id),
+        ]);
+        if (isCancelled) return;
+        setNotes(notesList);
+        setTasks(tasksList);
+        setComms(commsList);
+        setInteractions(interList as any);
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, [studentId]);
   
   // Show loading state while resolving params
   if (isLoading) {
@@ -83,13 +113,19 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
       createdAt: new Date(),
       createdBy: "admin@demo",
     };
-    mockDb.addNote(record);
-    setNotes(mockDb.listNotes(current.id));
+    (async () => {
+      await firebaseDb.addNote(record);
+      const list = await firebaseDb.listNotes(current.id);
+      setNotes(list);
+    })();
   }
 
   function handleDeleteNote(id: string) {
-    mockDb.deleteNote(current.id, id);
-    setNotes(mockDb.listNotes(current.id));
+    (async () => {
+      await firebaseDb.deleteNote(current.id, id);
+      const list = await firebaseDb.listNotes(current.id);
+      setNotes(list);
+    })();
   }
 
   // Tasks
@@ -106,13 +142,19 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
       assignee: "admin@demo",
       createdAt: new Date(),
     };
-    mockDb.addTask(record);
-    setTasks(mockDb.listTasks(current.id));
+    (async () => {
+      await firebaseDb.addTask(record);
+      const list = await firebaseDb.listTasks(current.id);
+      setTasks(list);
+    })();
   }
 
   function handleDeleteTask(id: string) {
-    mockDb.deleteTask(current.id, id);
-    setTasks(mockDb.listTasks(current.id));
+    (async () => {
+      await firebaseDb.deleteTask(current.id, id);
+      const list = await firebaseDb.listTasks(current.id);
+      setTasks(list);
+    })();
   }
 
   // Communications
@@ -130,13 +172,19 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
       createdAt: new Date(),
       createdBy: "admin@demo",
     };
-    mockDb.addCommunication(record);
-    setComms(mockDb.listCommunications(current.id));
+    (async () => {
+      await firebaseDb.addCommunication(record);
+      const list = await firebaseDb.listCommunications(current.id);
+      setComms(list);
+    })();
   }
 
   function handleDeleteComm(id: string) {
-    mockDb.deleteCommunication(current.id, id);
-    setComms(mockDb.listCommunications(current.id));
+    (async () => {
+      await firebaseDb.deleteCommunication(current.id, id);
+      const list = await firebaseDb.listCommunications(current.id);
+      setComms(list);
+    })();
   }
 
   return (
@@ -186,8 +234,12 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
             className="flex items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              mockDb.updateStudent(current.id, { status });
-              push("Stage updated");
+              (async () => {
+                await firebaseDb.updateStudent(current.id, { status });
+                const s = await firebaseDb.getStudent(current.id);
+                setStudent(s);
+                push("Stage updated");
+              })();
             }}
           >
             <label className="text-xs text-slate-600 font-medium">Stage</label>
@@ -214,7 +266,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <span>📈</span> Interaction Timeline
             </h2>
-            <Timeline studentId={current.id} />
+            <Timeline interactions={interactions as any} />
           </Card>
         )}
         {tab === "comms" && (
@@ -232,10 +284,10 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
                       studentId: current.id,
                       subject: "Follow-up: Next Steps",
                       body: `Hi ${current.name.split(" ")[0]},\n\nJust checking in about your application progress. Reply if you'd like help with essays or shortlisting colleges.`,
+                      to: current.email,
                     }),
                   });
                   if (res.ok) {
-                    // Mirror server-side write into local mockDb and UI
                     const newRecord: Communication = {
                       id: `comm_${Date.now().toString(36)}`,
                       studentId: current.id,
@@ -243,17 +295,17 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
                       subject: "Follow-up: Next Steps",
                       body: `Hi ${current.name.split(" ")[0]},\n\nJust checking in about your application progress. Reply if you'd like help with essays or shortlisting colleges.`,
                       createdAt: new Date(),
-                      createdBy: "customer.io-mock",
+                      createdBy: "customer.io",
                     };
-                    mockDb.addCommunication(newRecord);
+                    await firebaseDb.addCommunication(newRecord);
                     setComms((prev) => [...prev, newRecord]);
-                    push("Follow-up queued (mock)");
+                    push("Follow-up queued");
                   } else if (typeof window !== "undefined") {
-                    push("Failed to queue follow-up (mock)");
+                    push("Failed to queue follow-up");
                   }
                 }}
               >
-                Send follow-up (mock)
+                Send follow-up
               </Button>
             </div>
             <form
@@ -401,7 +453,13 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
 
         {tab === "ai-summary" && (
           <div className="mt-4">
-            <AISummary student={current} />
+            <AISummary 
+              student={current} 
+              interactions={interactions as any}
+              communications={comms}
+              notes={notes}
+              tasks={tasks}
+            />
           </div>
         )}
       </div>

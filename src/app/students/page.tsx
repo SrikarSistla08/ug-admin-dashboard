@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { mockDb } from "@/data/mockDb";
+import { useEffect, useMemo, useState } from "react";
+import { firebaseDb } from "@/lib/firebaseDb";
 import { Student } from "@/domain/types";
 import { format, differenceInDays } from "date-fns";
 import { Input } from "@/components/ui/Input";
@@ -15,9 +15,21 @@ export default function StudentsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string>("");
   const [quick, setQuick] = useState<string>("");
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    (async () => {
+      const list = await firebaseDb.listStudentsFull();
+      if (!isCancelled) setAllStudents(list);
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const students = useMemo<Student[]>(() => {
-    const data = mockDb.listStudentsFull();
+    const data = allStudents;
     const q = query.trim().toLowerCase();
     let filtered = data
       .filter((s) =>
@@ -43,7 +55,7 @@ export default function StudentsPage() {
   }, [query, status, quick]);
 
   const stats = useMemo(() => {
-    const all: Student[] = mockDb.listStudentsFull();
+    const all: Student[] = allStudents;
     const total = all.length;
     const statusCounts = all.reduce(
       (acc, s) => {
@@ -55,10 +67,10 @@ export default function StudentsPage() {
     const notContacted7d = all.filter((s) => {
       return differenceInDays(new Date(), s.lastActiveAt) >= 7;
     }).length;
-    const highIntent = all.filter((s) => Array.isArray(s.flags) && s.flags.includes("high_intent")).length;
-    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && s.flags.includes("needs_essay_help")).length;
+    const highIntent = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("high_intent")).length;
+    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("needs_essay_help")).length;
     return { total, statusCounts, notContacted7d, highIntent, needsEssayHelp };
-  }, []);
+  }, [allStudents]);
 
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto w-full">

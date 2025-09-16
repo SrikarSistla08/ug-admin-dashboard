@@ -1,5 +1,4 @@
 "use client";
-import { mockDb } from "@/data/mockDb";
 import { Student, Interaction, Communication, Note, Task } from "@/domain/types";
 import { format, differenceInDays } from "date-fns";
 import { Card } from "@/components/ui/Card";
@@ -7,14 +6,13 @@ import { Badge } from "@/components/ui/Badge";
 
 interface AISummaryProps {
   student: Student;
+  interactions: Interaction[];
+  communications: Communication[];
+  notes: Note[];
+  tasks: Task[];
 }
 
-export default function AISummary({ student }: AISummaryProps) {
-  // Gather all student data for AI analysis
-  const interactions = mockDb.listInteractions(student.id);
-  const communications = mockDb.listCommunications(student.id);
-  const notes = mockDb.listNotes(student.id);
-  const tasks = mockDb.listTasks(student.id);
+export default function AISummary({ student, interactions, communications, notes, tasks }: AISummaryProps) {
 
   // Mock AI analysis based on student data
   function generateAISummary(): {

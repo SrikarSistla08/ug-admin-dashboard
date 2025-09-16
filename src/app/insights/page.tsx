@@ -1,8 +1,8 @@
 "use client";
 
-import { mockDb } from "@/data/mockDb";
 import { applicationStatuses, Student } from "@/domain/types";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { firebaseDb } from "@/lib/firebaseDb";
 
 const statusColors = {
   exploring: "bg-blue-100 text-blue-800",
@@ -19,27 +19,46 @@ const statusIcons = {
 };
 
 export default function InsightsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [communicationsByStudent, setCommunicationsByStudent] = useState<Record<string, { createdAt: Date }[]>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const all = await firebaseDb.listStudentsFull();
+      if (cancelled) return;
+      setStudents(all);
+      const commsEntries = await Promise.all(
+        all.map(async (s) => {
+          const comms = await firebaseDb.listCommunications(s.id);
+          return [s.id, comms] as const;
+        })
+      );
+      if (cancelled) return;
+      setCommunicationsByStudent(Object.fromEntries(commsEntries));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const stats = useMemo(() => {
-    const all: Student[] = mockDb.listStudentsFull();
+    const all: Student[] = students;
     const total = all.length;
     const byStatus = applicationStatuses.map((s) => ({
       status: s,
       count: all.filter((stu) => stu.status === s).length,
     }));
-    
     // Additional metrics
-    const notContacted7d = all.filter(s => {
-      const lastComm = mockDb.listCommunications(s.id).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    const notContacted7d = all.filter((s) => {
+      const comms = communicationsByStudent[s.id] || [];
+      const lastComm = comms.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
       if (!lastComm) return true;
       const daysSince = (Date.now() - lastComm.createdAt.getTime()) / (1000 * 60 * 60 * 24);
       return daysSince >= 7;
     }).length;
-    
-    const highIntent = all.filter(s => Array.isArray(s.flags) && s.flags.includes("high_intent")).length;
-    const needsEssayHelp = all.filter(s => Array.isArray(s.flags) && s.flags.includes("needs_essay_help")).length;
-    
+    const highIntent = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("high_intent")).length;
+    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("needs_essay_help")).length;
     return { total, byStatus, notContacted7d, highIntent, needsEssayHelp };
-  }, []);
+  }, [students, communicationsByStudent]);
 
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto w-full">

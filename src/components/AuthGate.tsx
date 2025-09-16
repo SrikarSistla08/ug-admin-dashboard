@@ -1,21 +1,21 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { authService } from "@/lib/auth";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Only run on client side
     if (typeof window === 'undefined') return;
-    
     const open = pathname?.startsWith("/login");
-    const authed = !!localStorage.getItem("ug_admin_token");
-    
-    if (!open && !authed) {
-      router.replace("/login");
-    }
+    const unsubscribe = authService.onAuthStateChanged((user) => {
+      if (!open && !user) {
+        router.replace("/login");
+      }
+    });
+    return unsubscribe;
   }, [pathname, router]);
 
   return <>{children}</>;

@@ -1,14 +1,19 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { authService } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  // Removed automatic redirect - users must manually click to login
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-6">
@@ -76,18 +81,59 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Login Button */}
-          <Button
-            variant="primary"
-            size="md"
-            className="w-full"
-            onClick={() => {
-              localStorage.setItem("ug_admin_token", "demo");
-              router.replace("/students");
+          {/* Email/Password Login */}
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setError(null);
+              setIsLoading(true);
+              try {
+                await authService.signIn(email, password);
+                router.replace("/students");
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Login failed");
+              } finally {
+                setIsLoading(false);
+              }
             }}
           >
-            Continue to Dashboard
-          </Button>
+            <label className="text-sm text-slate-600 font-medium">
+              Email
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                placeholder="you@example.com"
+                className="mt-1 w-full"
+                required
+              />
+            </label>
+            <label className="text-sm text-slate-600 font-medium">
+              Password
+              <Input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="••••••••"
+                className="mt-1 w-full"
+                required
+              />
+            </label>
+            {error && (
+              <div className="text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
         </Card>
 
         {/* Footer Note */}
