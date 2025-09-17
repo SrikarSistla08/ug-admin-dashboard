@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { applicationStatuses, ApplicationStatus } from "@/domain/types";
+import { applicationStatuses } from "@/domain/types";
 
 interface StatusSelectProps {
   value: string;

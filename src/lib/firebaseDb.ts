@@ -12,7 +12,7 @@ import {
   orderBy,
   limit,
   Timestamp,
-  increment,
+  // increment,
   deleteField 
 } from 'firebase/firestore';
 import { db } from './firebase';

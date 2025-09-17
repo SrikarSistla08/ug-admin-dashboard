@@ -1,6 +1,6 @@
 "use client";
 import { Student, Interaction, Communication, Note, Task } from "@/domain/types";
-import { format, differenceInDays } from "date-fns";
+import { /*format, */differenceInDays } from "date-fns";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -12,7 +12,7 @@ interface AISummaryProps {
   tasks: Task[];
 }
 
-export default function AISummary({ student, interactions, communications, notes, tasks }: AISummaryProps) {
+export default function AISummary({ student, interactions, communications, /*notes,*/ tasks }: AISummaryProps) {
 
   // Mock AI analysis based on student data
   function generateAISummary(): {

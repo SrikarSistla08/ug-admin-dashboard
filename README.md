@@ -106,6 +106,8 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 ## 🎯 Usage Guide
 
 ### Getting Started
+**Demo Username: demousr1@gmail.com**
+***Demo Password: 123demo321***
 1. **Login**: Sign in with your Firebase Auth user (create one in Console → Authentication → Users)
 2. **Student Directory**: View all students with search and filters
 3. **Student Profile**: Click "View →" to see individual student details

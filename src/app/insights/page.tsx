@@ -3,14 +3,14 @@
 import { applicationStatuses, Student } from "@/domain/types";
 import { useEffect, useMemo, useState } from "react";
 import { firebaseDb } from "@/lib/firebaseDb";
-import { PieChart, BarChart, LineChart, MultiLineChart } from "@/components/ui/Charts";
+import { PieChart, BarChart, MultiLineChart } from "@/components/ui/Charts";
 
-const statusColors = {
-  exploring: "bg-blue-100 text-blue-800",
-  shortlisting: "bg-yellow-100 text-yellow-800", 
-  applying: "bg-orange-100 text-orange-800",
-  submitted: "bg-green-100 text-green-800"
-};
+// const statusColors = {
+//   exploring: "bg-blue-100 text-blue-800",
+//   shortlisting: "bg-yellow-100 text-yellow-800", 
+//   applying: "bg-orange-100 text-orange-800",
+//   submitted: "bg-green-100 text-green-800"
+// };
 
 const statusIcons = {
   exploring: "🔍",

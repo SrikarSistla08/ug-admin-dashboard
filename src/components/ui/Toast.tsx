@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, /*useEffect,*/ useState } from "react";
 
 type ToastItem = { id: string; text: string };
 
