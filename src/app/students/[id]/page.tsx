@@ -2,7 +2,7 @@
 import { firebaseDb } from "@/lib/firebaseDb";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { format } from "date-fns";
 import { Communication, Note, Task, Interaction, Student, applicationStatuses, ApplicationStatus } from "@/domain/types";
 import { Button } from "@/components/ui/Button";
@@ -17,9 +17,9 @@ import { Badge } from "@/components/ui/Badge";
 import Timeline from "./Timeline";
 import AISummary from "./AISummary";
 
-export default function StudentProfile({ params }: { params: { id: string } }) {
+export default function StudentProfile({ params }: { params: Promise<{ id: string }> }) {
   const [tab, setTab] = useState<string>("timeline");
-  const [studentId, setStudentId] = useState<string>(params.id);
+  const { id: studentId } = use(params);
   const [isLoading, setIsLoading] = useState(true);
   const { push } = useToast();
   
@@ -33,7 +33,7 @@ export default function StudentProfile({ params }: { params: { id: string } }) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskDraft, setTaskDraft] = useState<{ title: string; status: Task['status']; due: string }>({ title: "", status: "pending", due: "" });
   
-  // Params are directly available on first render in production
+  // Params are unwrapped with React.use()
   
   // Student and related data
   const [student, setStudent] = useState<Student | null>(null);
