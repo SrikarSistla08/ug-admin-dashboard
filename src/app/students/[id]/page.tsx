@@ -17,9 +17,9 @@ import { Badge } from "@/components/ui/Badge";
 import Timeline from "./Timeline";
 import AISummary from "./AISummary";
 
-export default function StudentProfile({ params }: { params: Promise<{ id: string }> }) {
+export default function StudentProfile({ params }: { params: { id: string } }) {
   const [tab, setTab] = useState<string>("timeline");
-  const [studentId, setStudentId] = useState<string>("");
+  const [studentId, setStudentId] = useState<string>(params.id);
   const [isLoading, setIsLoading] = useState(true);
   const { push } = useToast();
   
@@ -33,12 +33,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskDraft, setTaskDraft] = useState<{ title: string; status: Task['status']; due: string }>({ title: "", status: "pending", due: "" });
   
-  // Resolve params
-  useEffect(() => {
-    params.then((resolvedParams) => {
-      setStudentId(resolvedParams.id);
-    });
-  }, [params]);
+  // Params are directly available on first render in production
   
   // Student and related data
   const [student, setStudent] = useState<Student | null>(null);
