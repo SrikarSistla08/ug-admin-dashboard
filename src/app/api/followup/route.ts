@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Communication } from "@/domain/types";
-import { firebaseDb } from "@/lib/firebaseDb";
 import { customerIOService } from "@/lib/customerio";
 
 export async function POST(req: NextRequest) {
@@ -17,14 +16,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing studentId or body" }, { status: 400 });
     }
 
-    // Resolve recipient email from payload or Firestore
-    let recipient = to;
+    // Use recipient from payload (client must send student's email)
+    const recipient = to;
     if (!recipient) {
-      const student = await firebaseDb.getStudent(studentId);
-      if (!student || !student.email) {
-        return NextResponse.json({ error: "No recipient email available" }, { status: 400 });
-      }
-      recipient = student.email;
+      return NextResponse.json({ error: "Missing recipient email" }, { status: 400 });
     }
 
     // Try Customer.io (soft-fail in dev)
@@ -40,19 +35,8 @@ export async function POST(req: NextRequest) {
       ciStatus = 'skipped';
     }
 
-    // Persist communication record in Firestore
-    const record: Communication = {
-      id: `comm_${Date.now().toString(36)}`,
-      studentId,
-      channel: "email",
-      subject: subject || "Follow-up",
-      body: message,
-      createdAt: new Date(),
-      createdBy: "customer.io",
-    };
-    await firebaseDb.addCommunication(record);
-
-    return NextResponse.json({ ok: true, id: record.id, customerio: ciStatus });
+    // Do not write to Firestore from server (rules require user auth). Client will persist.
+    return NextResponse.json({ ok: true, customerio: ciStatus });
   } catch (e) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
