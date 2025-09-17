@@ -15,13 +15,16 @@ export default function StudentsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string>("");
   const [quick, setQuick] = useState<string>("");
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  type Row = { id: string; name: string; email: string; country: string; status: Student['status']; lastActiveAt: Date; createdAt: Date; flags?: string[]; communicationsCount?: number; lastCommunicationAt?: Date };
+  const [allStudents, setAllStudents] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<"lastComm" | "commCount" | "lastActive" | "name">("lastActive");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     let isCancelled = false;
     (async () => {
-      const list = await firebaseDb.listStudentsFull();
+      const list = await firebaseDb.listStudentsWithMetrics();
       if (!isCancelled) {
         setAllStudents(list);
         setLoading(false);
@@ -32,7 +35,7 @@ export default function StudentsPage() {
     };
   }, []);
 
-  const students = useMemo<Student[]>(() => {
+  const students = useMemo<Row[]>(() => {
     const data = allStudents;
     const q = query.trim().toLowerCase();
     let filtered = data
@@ -46,20 +49,33 @@ export default function StudentsPage() {
       .filter((s) => (status ? s.status === status : true));
 
     if (quick === "not7") {
-      filtered = filtered.filter(
-        (s) => differenceInDays(new Date(), s.lastActiveAt) >= 7
-      );
+      filtered = filtered.filter((s) => {
+        const last = s.lastCommunicationAt ?? s.lastActiveAt;
+        return differenceInDays(new Date(), last) >= 7;
+      });
     } else if (quick === "highIntent") {
-      filtered = filtered.filter((s) => Array.isArray(s.flags) && s.flags.includes("high_intent"));
+      filtered = filtered.filter((s) => Array.isArray(s.flags) && s.flags?.includes("high_intent"));
     } else if (quick === "essayHelp") {
-      filtered = filtered.filter((s) => Array.isArray(s.flags) && s.flags.includes("needs_essay_help"));
+      filtered = filtered.filter((s) => Array.isArray(s.flags) && s.flags?.includes("needs_essay_help"));
     }
 
-    return filtered;
-  }, [query, status, quick, allStudents]);
+    const sorted = filtered.slice().sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
+      if (sortKey === "commCount") return ((a.communicationsCount ?? 0) - (b.communicationsCount ?? 0)) * dir;
+      if (sortKey === "lastComm") {
+        const ax = (a.lastCommunicationAt ?? a.lastActiveAt).getTime();
+        const bx = (b.lastCommunicationAt ?? b.lastActiveAt).getTime();
+        return (ax - bx) * dir;
+      }
+      return (a.lastActiveAt.getTime() - b.lastActiveAt.getTime()) * dir;
+    });
+
+    return sorted;
+  }, [query, status, quick, allStudents, sortKey, sortDir]);
 
   const stats = useMemo(() => {
-    const all: Student[] = allStudents;
+    const all: Row[] = allStudents;
     const total = all.length;
     const statusCounts = all.reduce(
       (acc, s) => {
@@ -71,8 +87,8 @@ export default function StudentsPage() {
     const notContacted7d = all.filter((s) => {
       return differenceInDays(new Date(), s.lastActiveAt) >= 7;
     }).length;
-    const highIntent = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("high_intent")).length;
-    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("needs_essay_help")).length;
+    const highIntent = all.filter((s) => Array.isArray(s.flags) && s.flags?.includes("high_intent")).length;
+    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && s.flags?.includes("needs_essay_help")).length;
     return { total, statusCounts, notContacted7d, highIntent, needsEssayHelp };
   }, [allStudents]);
 
@@ -105,6 +121,29 @@ export default function StudentsPage() {
             onChange={setStatus}
             className="w-40"
           />
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <label className="text-slate-600">Sort</label>
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+            className="border border-slate-300 rounded px-2 py-1"
+            aria-label="Sort key"
+          >
+            <option value="lastActive">Last Active</option>
+            <option value="lastComm">Last Comm</option>
+            <option value="commCount">Comms Count</option>
+            <option value="name">Name</option>
+          </select>
+          <button
+            type="button"
+            aria-label="Toggle sort direction"
+            title="Toggle sort direction"
+            className="border border-slate-300 rounded px-2 py-1 min-w-9 text-slate-700 hover:bg-slate-50"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          >
+            <span aria-hidden>{sortDir === "asc" ? "↑" : "↓"}</span>
+          </button>
         </div>
       </div>
 
@@ -219,6 +258,8 @@ export default function StudentsPage() {
                 <th className="text-left px-6 py-3 font-medium">Country</th>
                 <th className="text-left px-6 py-3 font-medium">Status</th>
                 <th className="text-left px-6 py-3 font-medium">Last Active</th>
+                <th className="text-left px-6 py-3 font-medium">Last Comm</th>
+                <th className="text-left px-6 py-3 font-medium">Comms</th>
                 <th className="text-left px-6 py-3 font-medium">Profile</th>
               </tr>
             </thead>
@@ -232,6 +273,8 @@ export default function StudentsPage() {
                     <Badge variant={s.status.toLowerCase() as "exploring" | "shortlisting" | "applying" | "submitted"}>{s.status}</Badge>
                   </td>
                   <td className="px-6 py-3 text-slate-600">{format(s.lastActiveAt, "yyyy-MM-dd")}</td>
+                  <td className="px-6 py-3 text-slate-600">{s.lastCommunicationAt ? format(s.lastCommunicationAt, 'yyyy-MM-dd') : '—'}</td>
+                  <td className="px-6 py-3 text-slate-600">{s.communicationsCount ?? 0}</td>
                   <td className="px-6 py-3">
                     <Link 
                       className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-transform duration-150 ease-out active:scale-95 inline-block" 

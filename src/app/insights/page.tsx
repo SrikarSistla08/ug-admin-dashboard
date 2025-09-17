@@ -3,7 +3,7 @@
 import { applicationStatuses, Student } from "@/domain/types";
 import { useEffect, useMemo, useState } from "react";
 import { firebaseDb } from "@/lib/firebaseDb";
-import { PieChart, BarChart, LineChart } from "@/components/ui/Charts";
+import { PieChart, BarChart, LineChart, MultiLineChart } from "@/components/ui/Charts";
 
 const statusColors = {
   exploring: "bg-blue-100 text-blue-800",
@@ -21,7 +21,7 @@ const statusIcons = {
 
 export default function InsightsPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [communicationsByStudent, setCommunicationsByStudent] = useState<Record<string, { createdAt: Date }[]>>({});
+  const [communicationsByStudent, setCommunicationsByStudent] = useState<Record<string, { createdAt: Date; channel: 'email' | 'sms' | 'call' }[]>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -81,7 +81,13 @@ export default function InsightsPage() {
         return t >= d && t < next;
       }).length;
     });
-    return { labels, counts };
+    // Channel split
+    const byChannel = ['email','sms','call'].map((ch) => days.map((d) => {
+      const next = new Date(d);
+      next.setDate(next.getDate() + 1);
+      return allComms.filter((c) => (c.channel === ch) && (c.createdAt as unknown as Date) >= d && (c.createdAt as unknown as Date) < next).length;
+    }));
+    return { labels, counts, byChannel } as { labels: string[]; counts: number[]; byChannel: number[][] };
   }, [communicationsByStudent]);
 
   return (
@@ -96,7 +102,16 @@ export default function InsightsPage() {
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span>📈</span> Communications (last 14 days)
         </h3>
-        <LineChart labels={trend.labels} values={trend.counts} />
+        <MultiLineChart
+          labels={trend.labels}
+          series={[
+            { name: 'All', values: trend.counts, color: '#3b82f6' },
+            { name: 'Email', values: trend.byChannel[0] || [], color: '#0ea5e9' },
+            { name: 'SMS', values: trend.byChannel[1] || [], color: '#f59e0b' },
+            { name: 'Call', values: trend.byChannel[2] || [], color: '#10b981' },
+          ]}
+          areaIndex={0}
+        />
       </div>
 
       {/* Key Metrics Cards */}
@@ -191,6 +206,35 @@ export default function InsightsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Follow-up candidates */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-8">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span>⏳</span> Needs Follow-up (not contacted ≥7 days)
+        </h3>
+        <ul className="divide-y divide-slate-200">
+          {students
+            .map((s) => {
+              const comms = communicationsByStudent[s.id] || [];
+              const last = comms.sort((a,b) => b.createdAt.getTime()-a.createdAt.getTime())[0]?.createdAt || s.lastActiveAt;
+              const days = Math.floor((Date.now() - (last as unknown as Date).getTime()) / (1000*60*60*24));
+              return { id: s.id, name: s.name, email: s.email, days };
+            })
+            .filter((r) => r.days >= 7)
+            .sort((a,b) => b.days - a.days)
+            .slice(0, 10)
+            .map((r) => (
+              <li key={r.id} className="py-2 flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-medium">{r.name}</div>
+                  <div className="text-slate-600">{r.email}</div>
+                </div>
+                <div className="text-slate-700">{r.days} days</div>
+              </li>
+            ))}
+          {students.length === 0 && <li className="py-6 text-sm text-slate-500">No data</li>}
+        </ul>
       </div>
 
       {/* Detailed Table */}

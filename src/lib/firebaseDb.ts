@@ -79,6 +79,26 @@ export class FirebaseDb {
     });
   }
 
+  async listStudentsWithMetrics(): Promise<Array<DirectoryStudent & { communicationsCount?: number; lastCommunicationAt?: Date; createdAt: Date; flags?: string[] }>> {
+    const studentsRef = collection(db, 'students');
+    const snapshot = await getDocs(studentsRef);
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        email: data.email,
+        country: data.country,
+        status: data.status,
+        lastActiveAt: convertTimestamp(data.lastActiveAt),
+        createdAt: convertTimestamp(data.createdAt),
+        communicationsCount: typeof data.communicationsCount === 'number' ? data.communicationsCount : undefined,
+        lastCommunicationAt: data.lastCommunicationAt ? convertTimestamp(data.lastCommunicationAt) : undefined,
+        flags: data.flags || [],
+      };
+    });
+  }
+
   async getStudent(id: string): Promise<Student | null> {
     const studentRef = doc(db, 'students', id);
     const snapshot = await getDoc(studentRef);

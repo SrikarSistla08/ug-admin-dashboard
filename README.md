@@ -1,12 +1,12 @@
 # Undergraduation Admin Dashboard
 
-A lightweight internal CRM dashboard for managing student interactions on undergraduation.com. Built with Next.js 15, TypeScript, and Tailwind CSS.
+A lightweight internal CRM dashboard for managing student interactions on undergraduation.com. Built with Next.js 15, TypeScript, Tailwind CSS, Firebase (Auth + Firestore), and optional FastAPI backend.
 
 ## 🚀 Features
 
 ### Student Directory View
-- **Table view** of all students with search and filtering
-- **Key columns**: Name, Email, Country, Application Status, Last Active
+- **Table view** with search, filtering, and sorting
+- **Key columns**: Name, Email, Country, Application Status, Last Active, Last Communication, Communications Count
 - **Quick filters**: "Students not contacted in 7 days", "High intent", "Needs essay help"
 - **Click to view** individual student profiles
 
@@ -19,28 +19,28 @@ A lightweight internal CRM dashboard for managing student interactions on underg
 
 ### Communication Tools
 - **Manual Communication Logging**: Log calls, emails, SMS
-- **Follow-up Emails**: Mock Customer.io integration with success notifications
+- **Follow-up Emails**: Customer.io call (soft-fails gracefully if not configured)
 - **Task Management**: Schedule reminders and tasks for internal team
 
 ### Insights & Analytics
 - **Summary Statistics**: Active students, status breakdowns
-- **Visual Metrics**: Rich dashboard with gradient cards and progress bars
+- **Charts**: Status bar/pie, 14‑day multi-series trend (All/Email/SMS/Call) with smoothing, area fill, hover tooltip, legend click-to-filter, and follow-up candidates list
 - **Application Progress**: Track students through "Exploring" → "Shortlisting" → "Applying" → "Submitted"
 
 ### UI/UX Features
-- **Modern Design**: Inspired by my.undergraduation.com with light, friendly theme
-- **Responsive Layout**: Works on desktop and mobile
-- **Smooth Animations**: Click interactions and hover effects
-- **Authentication**: Login page with demo access
+- **Modern Design**: Friendly, responsive layout
+- **Smooth Interactions**: Hover/active states, toasts
+- **Authentication**: Firebase Auth (email/password)
 - **Professional Header/Footer**: Branded navigation
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
 - **UI Components**: Custom component library (Button, Card, Badge, Input, Select, Progress, Tabs, Toast, Avatar)
-- **Database**: In-memory mock database (ready for Firebase Firestore)
-- **Authentication**: Mock auth system (ready for Firebase Auth)
-- **Email Integration**: Mock Customer.io API
+- **Database**: Firebase Firestore
+- **Authentication**: Firebase Auth
+- **Email Integration**: Customer.io (soft-fail in dev)
+- **Backend (optional)**: FastAPI in `backend/`
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
 - **Form Management**: React Hook Form
@@ -71,7 +71,25 @@ pnpm install
 bun install
 ```
 
-### 3. Run Development Server
+### 3. Configure Environment
+Create `.env.local` in the project root:
+
+```env
+# Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+
+# Customer.io (optional)
+NEXT_PUBLIC_CUSTOMER_IO_SITE_ID=...
+CUSTOMER_IO_API_KEY=...
+CUSTOMER_IO_REGION=us
+```
+
+### 4. Run Development Server
 ```bash
 npm run dev
 # or
@@ -82,13 +100,13 @@ pnpm dev
 bun dev
 ```
 
-### 4. Open in Browser
+### 5. Open in Browser
 Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🎯 Usage Guide
 
 ### Getting Started
-1. **Login**: Click "Continue to Dashboard" on the login page
+1. **Login**: Sign in with your Firebase Auth user (create one in Console → Authentication → Users)
 2. **Student Directory**: View all students with search and filters
 3. **Student Profile**: Click "View →" to see individual student details
 4. **Insights**: Navigate to Insights page for analytics
@@ -96,9 +114,10 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 ### Key Features
 
 #### Student Directory
-- **Search**: Type in the search box to filter by name, email, or country
-- **Status Filter**: Use dropdown to filter by application status
-- **Quick Filters**: Click buttons for common filters (Not contacted 7+ days, High intent, Needs essay help)
+- **Search**: Filter by name, email, or country
+- **Status Filter**: Filter by application status
+- **Quick Filters**: Not contacted ≥7d, High intent, Needs essay help
+- **Sorting**: Toggle by Last Active, Last Comm, Comms Count, or Name; arrow toggles asc/desc
 - **View Profile**: Click "View →" to open individual student profile
 
 #### Student Profile
@@ -111,9 +130,9 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 - **Tasks Tab**: Create and manage tasks for the student
 
 #### Communication Tools
-- **Log Communication**: Add new emails, calls, or SMS
-- **Send Follow-up**: Mock Customer.io integration with success toast
-- **Add Tasks**: Create reminders and tasks with due dates
+- **Log Communication**: Add emails, calls, or SMS
+- **Send Follow-up**: `/api/followup` soft-calls Customer.io and still records locally
+- **Add Tasks**: Create reminders with inline edit for title/status/due date
 
 #### Insights Dashboard
 - **Key Metrics**: View total students, not contacted, high intent, needs essay help
@@ -165,19 +184,27 @@ ug-admin-dashboard/
 
 ## 🔧 Configuration
 
-### Environment Variables
-Currently uses mock data. For production, you would add:
+### Firebase Setup
+1. Firebase Console → Authentication → Enable Email/Password; add a user.
+2. Firestore → Rules (dev):
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /{document=**} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
+3. Composite Indexes (Collection / Fields):
+   - `interactions` → `studentId Asc, createdAt Desc`
+   - `communications` → `studentId Asc, createdAt Desc`
+   - `notes` → `studentId Asc, createdAt Desc`
+   - `tasks` → `studentId Asc, createdAt Desc`
 
-```env
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-
-# Customer.io Configuration
-CUSTOMER_IO_API_KEY=your_api_key
-CUSTOMER_IO_SITE_ID=your_site_id
-```
+### Seed Data
+- While signed in, visit `/admin/seed` to add 10 sample students with interactions, communications, tasks, and notes.
 
 ### Mock Data
 The application includes seeded data with 10 sample students across different application stages. Data is stored in memory and resets on server restart.
@@ -237,9 +264,8 @@ npm run lint         # Run ESLint
 ## 🔮 Future Enhancements
 
 ### Production Ready
-- [ ] Replace mock database with Firebase Firestore
-- [ ] Implement Firebase Authentication
-- [ ] Add real Customer.io integration
+- [ ] Role-based rules (admin claims), App Check
+- [ ] Customer.io templates and delivery status
 - [ ] Add data validation with Zod
 - [ ] Implement error boundaries
 - [ ] Add loading states and skeletons
