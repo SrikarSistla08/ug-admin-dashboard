@@ -12,7 +12,8 @@ import {
   orderBy,
   limit,
   Timestamp,
-  increment 
+  increment,
+  deleteField 
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Student, Interaction, Communication, Note, Task, DirectoryStudent } from '@/domain/types';
@@ -82,21 +83,44 @@ export class FirebaseDb {
   async listStudentsWithMetrics(): Promise<Array<DirectoryStudent & { communicationsCount?: number; lastCommunicationAt?: Date; createdAt: Date; flags?: string[] }>> {
     const studentsRef = collection(db, 'students');
     const snapshot = await getDocs(studentsRef);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        name: data.name,
-        email: data.email,
-        country: data.country,
-        status: data.status,
-        lastActiveAt: convertTimestamp(data.lastActiveAt),
-        createdAt: convertTimestamp(data.createdAt),
-        communicationsCount: typeof data.communicationsCount === 'number' ? data.communicationsCount : undefined,
-        lastCommunicationAt: data.lastCommunicationAt ? convertTimestamp(data.lastCommunicationAt) : undefined,
-        flags: data.flags || [],
-      };
-    });
+    const communicationsRef = collection(db, 'communications');
+
+    const rows = await Promise.all(
+      snapshot.docs.map(async (studentDoc) => {
+        const data = studentDoc.data();
+        // Count all communications for this student
+        const qCount = query(communicationsRef, where('studentId', '==', studentDoc.id));
+        const countSnap = await getDocs(qCount);
+        const communicationsCount = countSnap.size;
+
+        // Latest communication
+        const qLatest = query(
+          communicationsRef,
+          where('studentId', '==', studentDoc.id),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        const latestSnap = await getDocs(qLatest);
+        const lastCommunicationAt = latestSnap.docs.length
+          ? convertTimestamp(latestSnap.docs[0].data().createdAt)
+          : undefined;
+
+        return {
+          id: studentDoc.id,
+          name: data.name,
+          email: data.email,
+          country: data.country,
+          status: data.status,
+          lastActiveAt: convertTimestamp(data.lastActiveAt),
+          createdAt: convertTimestamp(data.createdAt),
+          communicationsCount,
+          lastCommunicationAt,
+          flags: data.flags || [],
+        } as DirectoryStudent & { communicationsCount?: number; lastCommunicationAt?: Date; createdAt: Date; flags?: string[] };
+      })
+    );
+
+    return rows;
   }
 
   async getStudent(id: string): Promise<Student | null> {
@@ -173,8 +197,14 @@ export class FirebaseDb {
     await addDoc(communicationsRef, communicationData);
     // Update per-student counters and last communication metadata
     const studentRef = doc(db, 'students', communication.studentId);
+    // Recompute accurate count to avoid drift/negatives
+    const qCount = query(
+      communicationsRef,
+      where('studentId', '==', communication.studentId)
+    );
+    const snapshot = await getDocs(qCount);
     await updateDoc(studentRef, {
-      communicationsCount: increment(1),
+      communicationsCount: snapshot.size,
       lastCommunicationAt: toTimestamp(communication.createdAt),
       lastCommunicationChannel: communication.channel,
     });
@@ -212,35 +242,39 @@ export class FirebaseDb {
   async deleteCommunication(studentId: string, id: string): Promise<void> {
     const communicationRef = doc(db, 'communications', id);
     await deleteDoc(communicationRef);
-    // Decrement counter and recompute lastCommunicationAt
+    // Recompute counters and latest metadata
     const studentRef = doc(db, 'students', studentId);
-    try {
-      await updateDoc(studentRef, { communicationsCount: increment(-1) });
-    } catch {
-      // ignore if field missing
-    }
-    // Recompute latest communication timestamp/channel
     const communicationsRef = collection(db, 'communications');
-    const q = query(
+    // Count remaining communications
+    const qCount = query(
+      communicationsRef,
+      where('studentId', '==', studentId)
+    );
+    const countSnap = await getDocs(qCount);
+    const remaining = countSnap.size;
+    // Latest communication
+    const qLatest = query(
       communicationsRef,
       where('studentId', '==', studentId),
       orderBy('createdAt', 'desc'),
       limit(1)
     );
-    const snapshot = await getDocs(q);
-    if (snapshot.docs.length > 0) {
-      const data = snapshot.docs[0].data() as {
+    const latestSnap = await getDocs(qLatest);
+    if (latestSnap.docs.length > 0) {
+      const data = latestSnap.docs[0].data() as {
         createdAt: Timestamp | { toDate: () => Date } | Date;
         channel: string;
       };
       await updateDoc(studentRef, {
+        communicationsCount: remaining,
         lastCommunicationAt: data.createdAt,
         lastCommunicationChannel: data.channel,
       });
     } else {
       await updateDoc(studentRef, {
-        lastCommunicationAt: null as unknown as Timestamp,
-        lastCommunicationChannel: null as unknown as string,
+        communicationsCount: 0,
+        lastCommunicationAt: deleteField(),
+        lastCommunicationChannel: deleteField(),
       });
     }
   }
