@@ -56,8 +56,8 @@ export default function InsightsPage() {
       const daysSince = (Date.now() - lastComm.createdAt.getTime()) / (1000 * 60 * 60 * 24);
       return daysSince >= 7;
     }).length;
-    const highIntent = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("high_intent")).length;
-    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && (s.flags as any).includes("needs_essay_help")).length;
+    const highIntent = all.filter((s) => Array.isArray(s.flags) && s.flags?.includes("high_intent")).length;
+    const needsEssayHelp = all.filter((s) => Array.isArray(s.flags) && s.flags?.includes("needs_essay_help")).length;
     return { total, byStatus, notContacted7d, highIntent, needsEssayHelp };
   }, [students, communicationsByStudent]);
 

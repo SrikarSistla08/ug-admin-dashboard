@@ -21,7 +21,7 @@ export default function Timeline({ interactions }: { interactions: Interaction[]
     <ul className="relative pl-6">
       <li className="list-none absolute left-2 top-0 bottom-0 w-px bg-gradient-to-b from-black via-slate-600 to-slate-300" aria-hidden />
       <li className="list-none absolute left-1.5 top-0 w-0 h-0 border-l-[3px] border-r-[3px] border-b-[6px] border-l-transparent border-r-transparent border-b-black animate-pulse" aria-hidden />
-      {items.map((i, index) => (
+      {items.map((i) => (
         <li key={i.id} className="mb-4 group">
           <div className="flex items-start gap-3">
             <div className="relative -left-[9px] mt-0.5 transition-transform duration-200 group-hover:scale-110">

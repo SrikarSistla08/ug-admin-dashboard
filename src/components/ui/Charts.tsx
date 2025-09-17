@@ -43,10 +43,8 @@ export function PieChart({ data, size = 160, strokeWidth = 24 }: { data: PieSlic
 
 export function BarChart({
   items,
-  maxBar = 220,
 }: {
   items: { label: string; value: number; color: string }[];
-  maxBar?: number;
 }) {
   const max = Math.max(1, ...items.map((i) => i.value));
   return (

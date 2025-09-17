@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Communication } from "@/domain/types";
 import { customerIOService } from "@/lib/customerio";
 
 export async function POST(req: NextRequest) {
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Do not write to Firestore from server (rules require user auth). Client will persist.
     return NextResponse.json({ ok: true, customerio: ciStatus });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 }
