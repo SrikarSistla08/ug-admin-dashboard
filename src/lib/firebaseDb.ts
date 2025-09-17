@@ -182,6 +182,13 @@ export class FirebaseDb {
     });
   }
 
+  async updateCommunication(studentId: string, id: string, updates: Partial<Pick<Communication, 'subject' | 'body' | 'channel' | 'createdAt'>>): Promise<void> {
+    const communicationRef = doc(db, 'communications', id);
+    const updateData: Record<string, unknown> = { ...updates };
+    if (updates.createdAt) updateData.createdAt = toTimestamp(updates.createdAt);
+    await updateDoc(communicationRef, updateData);
+  }
+
   async deleteCommunication(studentId: string, id: string): Promise<void> {
     const communicationRef = doc(db, 'communications', id);
     await deleteDoc(communicationRef);
@@ -248,6 +255,11 @@ export class FirebaseDb {
     });
   }
 
+  async updateNote(studentId: string, id: string, content: string): Promise<void> {
+    const noteRef = doc(db, 'notes', id);
+    await updateDoc(noteRef, { content });
+  }
+
   async deleteNote(studentId: string, id: string): Promise<void> {
     const noteRef = doc(db, 'notes', id);
     await deleteDoc(noteRef);
@@ -289,6 +301,13 @@ export class FirebaseDb {
   async deleteTask(studentId: string, id: string): Promise<void> {
     const taskRef = doc(db, 'tasks', id);
     await deleteDoc(taskRef);
+  }
+
+  async updateTask(studentId: string, id: string, updates: Partial<Pick<Task, 'title' | 'status' | 'dueAt'>>): Promise<void> {
+    const taskRef = doc(db, 'tasks', id);
+    const updateData: Record<string, unknown> = { ...updates };
+    if (updates.dueAt) updateData.dueAt = toTimestamp(updates.dueAt);
+    await updateDoc(taskRef, updateData);
   }
 }
 

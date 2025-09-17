@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Communication, Note, Task, applicationStatuses, ApplicationStatus } from "@/domain/types";
+import { Communication, Note, Task, Interaction, Student, applicationStatuses, ApplicationStatus } from "@/domain/types";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Progress } from "@/components/ui/Progress";
@@ -28,6 +28,10 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
   const [notes, setNotes] = useState<Note[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [comms, setComms] = useState<Communication[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState<string>("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskDraft, setTaskDraft] = useState<{ title: string; status: Task['status']; due: string }>({ title: "", status: "pending", due: "" });
   
   // Resolve params
   useEffect(() => {
@@ -37,19 +41,8 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
   }, [params]);
   
   // Student and related data
-  const [student, setStudent] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    grade?: string;
-    country: string;
-    status: ApplicationStatus;
-    lastActiveAt: Date;
-    createdAt: Date;
-    flags?: string[];
-  } | null>(null);
-  const [interactions, setInteractions] = useState<Array<{ id: string; studentId: string; type: string; metadata?: Record<string, unknown>; createdAt: Date }>>([]);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
   
   // Load data once we have studentId
   useEffect(() => {
@@ -72,7 +65,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
         setNotes(notesList);
         setTasks(tasksList);
         setComms(commsList);
-        setInteractions(interList as any);
+        setInteractions(interList);
       }
       setIsLoading(false);
     })();
@@ -267,7 +260,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <span>📈</span> Interaction Timeline
             </h2>
-            <Timeline interactions={interactions as any} />
+            <Timeline interactions={interactions} />
           </Card>
         )}
         {tab === "comms" && (
@@ -351,7 +344,9 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
                       {c.subject && <div className="font-medium mb-2">{c.subject}</div>}
                       <div className="whitespace-pre-wrap text-slate-700">{c.body}</div>
                     </div>
-                    <Button onClick={() => handleDeleteComm(c.id)} size="sm" variant="ghost" className="text-red-600 ml-3">Delete</Button>
+                    <div className="flex items-center ml-3">
+                      <Button onClick={() => handleDeleteComm(c.id)} size="sm" variant="ghost" className="text-red-600">Delete</Button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -390,9 +385,50 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
                         <span className="text-slate-500">•</span>
                         <span className="text-slate-600">{n.createdBy}</span>
                       </div>
-                      <div className="whitespace-pre-wrap text-slate-700">{n.content}</div>
+                      {editingNoteId === n.id ? (
+                        <form
+                          className="flex items-start gap-2"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const content = editingContent.trim();
+                            if (!content || content === n.content) {
+                              setEditingNoteId(null);
+                              return;
+                            }
+                            await firebaseDb.updateNote(current.id, n.id, content);
+                            const list = await firebaseDb.listNotes(current.id);
+                            setNotes(list);
+                            setEditingNoteId(null);
+                          }}
+                        >
+                          <Input
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button type="submit" size="sm">Save</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingNoteId(null)}>Cancel</Button>
+                        </form>
+                      ) : (
+                        <div className="whitespace-pre-wrap text-slate-700">{n.content}</div>
+                      )}
                     </div>
-                    <Button onClick={() => handleDeleteNote(n.id)} size="sm" variant="ghost" className="text-red-600 ml-3">Delete</Button>
+                    <div className="flex items-center gap-2 ml-3">
+                      {editingNoteId !== n.id && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label="Edit note"
+                          onClick={() => {
+                            setEditingNoteId(n.id);
+                            setEditingContent(n.content);
+                          }}
+                        >
+                          ✏️
+                        </Button>
+                      )}
+                      <Button onClick={() => handleDeleteNote(n.id)} size="sm" variant="ghost" className="text-red-600">Delete</Button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -432,18 +468,93 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
                 <li key={t.id} className="border border-slate-200 rounded-lg p-4 text-sm">
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <div className="font-medium mb-1">{t.title}</div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default">{t.status}</Badge>
-                        {t.dueAt && (
-                          <>
-                            <span className="text-slate-500">•</span>
-                            <span className="text-slate-600">due {format(t.dueAt, "yyyy-MM-dd")}</span>
-                          </>
-                        )}
-                      </div>
+                      {editingTaskId === t.id ? (
+                        <form
+                          className="flex flex-col gap-2 w-full"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const updates: Partial<{ title: string; status: Task['status']; dueAt?: Date }> = {};
+                            if (taskDraft.title !== t.title) updates.title = taskDraft.title;
+                            if (taskDraft.status !== t.status) updates.status = taskDraft.status;
+                            const currentDue = t.dueAt ? format(t.dueAt, 'yyyy-MM-dd') : '';
+                            if (taskDraft.due !== currentDue) updates.dueAt = taskDraft.due ? new Date(taskDraft.due) : undefined;
+                            if (Object.keys(updates).length) {
+                              await firebaseDb.updateTask(current.id, t.id, updates);
+                              const list = await firebaseDb.listTasks(current.id);
+                              setTasks(list);
+                            }
+                            setEditingTaskId(null);
+                          }}
+                        >
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <label className="text-sm text-slate-600 font-medium">
+                              Title
+                              <Input
+                                className="ml-2 w-64"
+                                value={taskDraft.title}
+                                onChange={(e) => setTaskDraft((d) => ({ ...d, title: e.target.value }))}
+                              />
+                            </label>
+                            <label className="text-sm text-slate-600 font-medium">
+                              Status
+                              <Select
+                                className="ml-2"
+                                value={taskDraft.status}
+                                onChange={(e) => setTaskDraft((d) => ({ ...d, status: e.target.value as Task['status'] }))}
+                              >
+                                <option value="pending">pending</option>
+                                <option value="done">done</option>
+                              </Select>
+                            </label>
+                            <label className="text-sm text-slate-600 font-medium">
+                              Due
+                              <Input
+                                type="date"
+                                className="ml-2"
+                                value={taskDraft.due}
+                                onChange={(e) => setTaskDraft((d) => ({ ...d, due: e.target.value }))}
+                              />
+                            </label>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Button type="submit" size="sm">Save</Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setEditingTaskId(null)}>Cancel</Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="font-medium mb-1">{t.title}</div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default">{t.status}</Badge>
+                            {t.dueAt && (
+                              <>
+                                <span className="text-slate-500">•</span>
+                                <span className="text-slate-600">due {format(t.dueAt, "yyyy-MM-dd")}</span>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <Button onClick={() => handleDeleteTask(t.id)} size="sm" variant="ghost" className="text-red-600 ml-3">Delete</Button>
+                    <div className="flex items-center gap-2 ml-3">
+                      {editingTaskId !== t.id && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingTaskId(t.id);
+                            setTaskDraft({
+                              title: t.title,
+                              status: t.status,
+                              due: t.dueAt ? format(t.dueAt, 'yyyy-MM-dd') : '',
+                            });
+                          }}
+                        >
+                          ✏️
+                        </Button>
+                      )}
+                      <Button onClick={() => handleDeleteTask(t.id)} size="sm" variant="ghost" className="text-red-600">Delete</Button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -456,7 +567,7 @@ export default function StudentProfile({ params }: { params: Promise<{ id: strin
           <div className="mt-4">
             <AISummary 
               student={current} 
-              interactions={interactions as any}
+              interactions={interactions}
               communications={comms}
               notes={notes}
               tasks={tasks}

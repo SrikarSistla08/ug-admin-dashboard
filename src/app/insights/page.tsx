@@ -3,6 +3,7 @@
 import { applicationStatuses, Student } from "@/domain/types";
 import { useEffect, useMemo, useState } from "react";
 import { firebaseDb } from "@/lib/firebaseDb";
+import { PieChart, BarChart, LineChart } from "@/components/ui/Charts";
 
 const statusColors = {
   exploring: "bg-blue-100 text-blue-800",
@@ -60,11 +61,42 @@ export default function InsightsPage() {
     return { total, byStatus, notContacted7d, highIntent, needsEssayHelp };
   }, [students, communicationsByStudent]);
 
+  // Build a 14-day communications trend
+  const trend = useMemo(() => {
+    // Flatten comms
+    const allComms = Object.values(communicationsByStudent).flat();
+    // Prepare last 14 days buckets
+    const days = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+    const labels = days.map((d) => `${d.getMonth() + 1}/${d.getDate()}`);
+    const counts = days.map((d) => {
+      const next = new Date(d);
+      next.setDate(next.getDate() + 1);
+      return allComms.filter((c) => {
+        const t = (c.createdAt as unknown as Date);
+        return t >= d && t < next;
+      }).length;
+    });
+    return { labels, counts };
+  }, [communicationsByStudent]);
+
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto w-full">
       <div className="mb-6">
         <div className="text-sm text-slate-500">Overview</div>
         <h1 className="text-2xl font-semibold">Insights</h1>
+      </div>
+
+      {/* Communications trend */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-8">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span>📈</span> Communications (last 14 days)
+        </h3>
+        <LineChart labels={trend.labels} values={trend.counts} />
       </div>
 
       {/* Key Metrics Cards */}
@@ -116,68 +148,47 @@ export default function InsightsPage() {
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <span>📊</span> Application Progress
           </h3>
-          <div className="space-y-4">
-            {stats.byStatus.map(({ status, count }) => {
-              const percentage = stats.total ? Math.round((count / stats.total) * 100) : 0;
-              return (
-                <div key={status} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{statusIcons[status as keyof typeof statusIcons]}</span>
-                      <span className="text-sm font-medium capitalize">{status}</span>
-                    </div>
-                    <div className="text-sm text-slate-600">{count} ({percentage}%)</div>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        status === 'Exploring' ? 'bg-blue-500' :
-                        status === 'Shortlisting' ? 'bg-yellow-500' :
-                        status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <BarChart
+            items={stats.byStatus.map(({ status, count }) => ({
+              label: status,
+              value: count,
+              color:
+                status === 'Exploring' ? '#3b82f6' :
+                status === 'Shortlisting' ? '#eab308' :
+                status === 'Applying' ? '#f97316' : '#22c55e',
+            }))}
+          />
         </div>
 
-        {/* Status Distribution Chart */}
+        {/* Status Distribution Pie */}
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <span>🥧</span> Status Distribution
           </h3>
-          <div className="space-y-3">
-            {stats.byStatus.map(({ status, count }) => {
-              const percentage = stats.total ? Math.round((count / stats.total) * 100) : 0;
-              return (
-                <div key={status} className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded-full ${
+          <div className="flex items-center gap-6">
+            <PieChart
+              data={stats.byStatus.map(({ status, count }) => ({
+                label: status,
+                value: count,
+                color:
+                  status === 'Exploring' ? '#3b82f6' :
+                  status === 'Shortlisting' ? '#eab308' :
+                  status === 'Applying' ? '#f97316' : '#22c55e',
+              }))}
+            />
+            <div className="text-sm text-slate-700 space-y-1">
+              {stats.byStatus.map(({ status, count }) => (
+                <div key={status} className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full ${
                     status === 'Exploring' ? 'bg-blue-500' :
-                    status === 'Shortlisting' ? 'bg-yellow-500' :       
+                    status === 'Shortlisting' ? 'bg-yellow-500' :
                     status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'
-                  }`}></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="capitalize font-medium">{status}</span>
-                      <span className="text-slate-600">{count} ({percentage}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
-                      <div 
-                        className={`h-1.5 rounded-full transition-all duration-500 ${                                                                   
-                          status === 'Exploring' ? 'bg-blue-500' :      
-                          status === 'Shortlisting' ? 'bg-yellow-500' : 
-                          status === 'Applying' ? 'bg-orange-500' : 'bg-green-500'                                                                      
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                  }`} />
+                  <span className="capitalize">{status}</span>
+                  <span className="text-slate-500">({count})</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
       </div>
